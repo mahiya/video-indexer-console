@@ -1,0 +1,16 @@
+# Files related to Azure Functions
+.vs
+*.sln
+bin
+obj
+Properties
+local.settings.json
+
+# Files related to Azure Static Web Apps
+.env
+swa-cli.config.json
+staticwebapp.config.json
+
+# Files related to Vue App
+app/node_modules
+app/dist
