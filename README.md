@@ -7,3 +7,5 @@
 ./deploy.sh {デプロイ先のリソースグループ名}
 # [例] ./deploy.sh rg-video-indexer-console
 ```
+
+![Screen Shot](./.images/screenshot.png)
