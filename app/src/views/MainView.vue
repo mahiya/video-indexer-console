@@ -41,7 +41,18 @@
             </td>
             <td>{{formatDurationSeconds(video.durationInSeconds)}}</td>
             <td>{{video.created}}</td>
-            <td><a href="#" @click="getArtifact(video)" v-if="video.state == 'Processed'">分析情報</a></td>
+            <td>
+              <div class="dropdown" v-if="video.state == 'Processed'">
+                <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Artifact
+                </button>
+                <ul class="dropdown-menu">
+                  <li v-for="command in downloadCommands" :key="command">
+                    <a class="dropdown-item" href="#" @click="getArtifact(video, command)">{{command}}</a>
+                  </li>
+                </ul>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -154,6 +165,23 @@ export default {
       uploadProgress: 0,
       uploadErrorMessage: null,
       selectedVideo: null,
+      downloadCommands: [
+        "Faces",
+        "FacesThumbnails",
+        "VisualContentModeration",
+        "KeyframesThumbnails",
+        "Emotions",
+        "TextualContentModeration",
+        "AudioEffects",
+        "ObservedPeople",
+        "Labels",
+        "Transcript",
+        "FeaturedClothing",
+        "Clapperboards",
+        "DigitalPatterns",
+        "TextlessMaterial",
+        "Logos",
+      ],
       videoLoading: false,
       videoWidgetsUrl: null,
       insightsWidgetsUrl: null
@@ -241,10 +269,11 @@ export default {
       this.selectedVideo = video;
     },
     // ビデオ分析情報を取得して画面に表示する処理
-    getArtifact: async function(video) {
-      const url = `${this.webApiEndpoint}/api/videos/${video.id}/artifact`;
+    getArtifact: async function(video, artifactType) {
+      const url = `${this.webApiEndpoint}/api/videos/${video.id}/${artifactType}/url`;
       const resp = await axios.get(url);
-      window.open(resp.data.artifactUrl, '_blank');
+      if(!resp.data.url) return;
+      window.open(resp.data.url, '_blank');
     },
     // 指定したビデオを削除する処理
     deleteVideo: async function(video) {

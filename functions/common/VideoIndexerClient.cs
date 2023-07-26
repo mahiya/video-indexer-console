@@ -59,27 +59,23 @@ namespace VideoIndexerConsole.Functions.Common
         /// <summary>
         /// https://api-portal.videoindexer.ai/api-details#api=Operations&operation=Get-Video-Artifact-Download-Url
         /// </summary>
-        public async Task<VideoArtifact> GetVideoArtifactAsync(string videoId)
+        public async Task<string> GetVideoArtifactDownloadUrlAsync(string videoId, VideoArtifactType artifactType)
         {
-            var artifactDownloadUrl = await GetVideoArtifactDownloadUrlAsync(videoId);
-            using var client = new HttpClient();
-            var json = await client.GetStringAsync(artifactDownloadUrl);
-            var result = JsonConvert.DeserializeObject<VideoArtifact>(json);
-            return result;
+            return await GetVideoArtifactDownloadUrlAsync(videoId, artifactType.ToString());
         }
 
         /// <summary>
         /// https://api-portal.videoindexer.ai/api-details#api=Operations&operation=Get-Video-Artifact-Download-Url
         /// </summary>
-        public async Task<string> GetVideoArtifactDownloadUrlAsync(string videoId)
+        public async Task<string> GetVideoArtifactDownloadUrlAsync(string videoId, string artifactType)
         {
             using var client = new HttpClient();
             var accountAccessToken = await GetAccountAccessTokenAsync();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accountAccessToken);
-            var url = $"https://api.videoindexer.ai/{_location}/Accounts/{_accountId}/Videos/{videoId}/ArtifactUrl?type=Transcript";
+            var url = $"https://api.videoindexer.ai/{_location}/Accounts/{_accountId}/Videos/{videoId}/ArtifactUrl?type={artifactType}";
             var resp = await client.GetAsync(url);
             var downloadUrl = (await resp.Content.ReadAsStringAsync()).Replace("\"", "");
-            return downloadUrl;
+            return downloadUrl.StartsWith("https://") ? downloadUrl : null;
         }
 
         /// <summary>
@@ -217,6 +213,26 @@ namespace VideoIndexerConsole.Functions.Common
             Account,
             Project,
             Video
+        }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum VideoArtifactType
+        {
+            Faces,
+            FacesThumbnails,
+            VisualContentModeration,
+            KeyframesThumbnails,
+            Emotions,
+            TextualContentModeration,
+            AudioEffects,
+            ObservedPeople,
+            Labels,
+            Transcript,
+            FeaturedClothing,
+            Clapperboards,
+            DigitalPatterns,
+            TextlessMaterial,
+            Logos,
         }
     }
 }

@@ -12,16 +12,16 @@ namespace VideoIndexerConsole.Functions.Api
     /// <summary>
     /// ビデオファイルを Azure Storage Blob にアップロードするための URL を発行する Web API
     /// </summary>
-    class GetUploadUrl
+    class GetVideoUploadUrl
     {
         readonly BlobSasGenerator _sasGenerator;
 
-        public GetUploadUrl(BlobSasGenerator sasGenerator)
+        public GetVideoUploadUrl(BlobSasGenerator sasGenerator)
         {
             _sasGenerator = sasGenerator;
         }
 
-        [FunctionName(nameof(GetUploadUrl))]
+        [FunctionName(nameof(GetVideoUploadUrl))]
         public async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "videos/uploadurl")] HttpRequest req)
         {
