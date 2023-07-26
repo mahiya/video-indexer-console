@@ -19,6 +19,7 @@
             <th>状態</th>
             <th>時間</th>
             <th>アップロード日時</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -39,6 +40,7 @@
             </td>
             <td>{{formatDurationSeconds(video.durationInSeconds)}}</td>
             <td>{{video.created}}</td>
+            <td><a href="#" @click="getArtifact(video)">分析情報</a></td>
           </tr>
         </tbody>
       </table>
@@ -148,7 +150,8 @@ export default {
     // ビデオ一覧を取得する
     listVideos: async function () {
       this.loading = true;
-      const resp = await axios.get(`${this.webApiEndpoint}/api/videos`);
+      const url = `${this.webApiEndpoint}/api/videos`;
+      const resp = await axios.get(url);
       this.loading = false;
       this.videos = resp.data.map((d) => {
         d.created = this.formatDate(d.created);
@@ -170,9 +173,8 @@ export default {
       // Azure Blob へのアップロード先URL(SAS付き)を取得する
       let uploadUrl;
       try {
-        const resp = await axios.get(
-          `${this.webApiEndpoint}/api/videos/uploadurl?name=${file.name}`
-        );
+        const url = `${this.webApiEndpoint}/api/videos/uploadurl?name=${file.name}`;
+        const resp = await axios.get(url);
         uploadUrl = resp.data;
       } catch (error) {
         const statusCode = error.response.status;
@@ -230,6 +232,13 @@ export default {
       this.insightsWidgetsUrl = resp.data.insightsWidgetsUrl;
       this.videoLoading = false;
     },
+    // ビデオ分析情報を取得して画面に表示する処理
+    getArtifact: async function(video) {
+      const url = `${this.webApiEndpoint}/api/videos/${video.id}/artifact`;
+      const resp = await axios.get(url);
+      window.open(resp.data.artifactUrl, '_blank');
+    },
+    // 秒数(int)からビデオの再生時間テキスト(string)へ変換する処理
     formatDurationSeconds: function (seconds) {
       if (!seconds) return "";
       const pad = (number) => (number < 10 ? "0" + number : number);
@@ -238,6 +247,7 @@ export default {
       const remainingSeconds = seconds - hours * 3600 - minutes * 60;
       return pad(hours) + ":" + pad(minutes) + ":" + pad(remainingSeconds);
     },
+    // アップロード日時を"yyyy/MM/dd HH:mm:ss"のフォーマットに変換する処理
     formatDate: function (date) {
       const d = new Date(date);
       const twoDig = (val) => ("0" + val).slice(-2);

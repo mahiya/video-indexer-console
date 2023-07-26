@@ -25,12 +25,10 @@ namespace VideoIndexerConsole.Functions.Api
         public override void Configure(IFunctionsHostBuilder builder)
         {
             var configuration = new FunctionConfiguration(Configuration);
-
-            var options = new DefaultAzureCredentialOptions();
-            var credential = new DefaultAzureCredential(options);
-
-            var serviceUri = new Uri($"https://{configuration.StorageAccountName}.blob.core.windows.net");
-            var blobServiceClient = new BlobServiceClient(serviceUri, credential);
+            var credential = new DefaultAzureCredential();
+            var blobServiceClient = new BlobServiceClient(
+                new Uri($"https://{configuration.StorageAccountName}.blob.core.windows.net"), 
+                credential);
 
             // BlobServiceClient
             builder.Services.AddSingleton(provider => blobServiceClient);

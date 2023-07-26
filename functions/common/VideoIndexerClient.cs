@@ -71,7 +71,7 @@ namespace VideoIndexerConsole.Functions.Common
         /// <summary>
         /// https://api-portal.videoindexer.ai/api-details#api=Operations&operation=Get-Video-Artifact-Download-Url
         /// </summary>
-        async Task<string> GetVideoArtifactDownloadUrlAsync(string videoId)
+        public async Task<string> GetVideoArtifactDownloadUrlAsync(string videoId)
         {
             using var client = new HttpClient();
             var accountAccessToken = await GetAccountAccessTokenAsync();
