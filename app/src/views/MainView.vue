@@ -279,6 +279,7 @@ export default {
     deleteVideo: async function(video) {
       const url = `${this.webApiEndpoint}/api/videos/${video.id}`;
       await axios.delete(url);
+      this.showDeleteModal = false;
       this.listVideos(); // ビデオ一覧を再取得する
     },
     // 秒数(int)からビデオの再生時間テキスト(string)へ変換する処理
