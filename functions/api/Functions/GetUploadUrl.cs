@@ -30,10 +30,6 @@ namespace VideoIndexerConsole.Functions.Api
             if (!req.Query.ContainsKey(queryKey)) return new BadRequestResult();
             var blobName = req.Query[queryKey];
 
-            // 既に同じ名前の Blob がアップロードされている場合は Conflict を返す
-            var alreadyExists = await _sasGenerator.BlobExistsAsync(blobName);
-            if (alreadyExists) return new ConflictResult();
-
             // ビデオファイルをアップロードするための SAS を発行して、アップロード用のURLを生成する
             var urlWithSas = await _sasGenerator.GetUrlWithSasAsync(blobName, BlobSasPermissions.Write, DateTime.UtcNow.AddMinutes(3));
             return new OkObjectResult(urlWithSas);

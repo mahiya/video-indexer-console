@@ -110,6 +110,18 @@ namespace VideoIndexerConsole.Functions.Common
             return result.Id;
         }
 
+        /// <summary>
+        /// https://api-portal.videoindexer.ai/api-details#api=Operations&operation=Delete-Video
+        /// </summary>
+        public async Task DeleteVideoAsync(string videoId)
+        {
+            using var httpClient = new HttpClient();
+            var accountAccessToken = await GetAccountAccessTokenAsync();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accountAccessToken);
+            var url = $"https://api.videoindexer.ai/{_location}/Accounts/{_accountId}/Videos/{videoId}";
+            await httpClient.DeleteAsync(url);
+        }
+
         async Task<string> GetAccountAccessTokenAsync()
         {
             const string cacheKey = "account";

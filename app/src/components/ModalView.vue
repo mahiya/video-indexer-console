@@ -13,7 +13,7 @@
             <slot name="body"></slot>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="$emit('close')">閉じる</button>
+            <slot name="footer"></slot>
           </div>
         </div>
       </div>

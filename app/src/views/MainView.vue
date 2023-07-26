@@ -7,8 +7,9 @@
 
       <!-- ボタンエリア -->
       <div class="text-end">
-        <button class="btn btn-primary me-2" @click="listVideos()">最新情報に更新</button>
-        <button type="button" class="btn btn-primary" @click="showModal = true">アップロード</button>
+        <button class="btn btn-primary" @click="listVideos()">最新情報に更新</button>
+        <button class="btn btn-primary ms-2" @click="showUploadModal = true">アップロード</button>
+        <button class="btn btn-danger ms-2" v-bind:disabled="!selectedVideo" @click="showDeleteModal = true">削除</button>
       </div>
 
       <!-- ビデオ一覧のテーブル -->
@@ -40,7 +41,7 @@
             </td>
             <td>{{formatDurationSeconds(video.durationInSeconds)}}</td>
             <td>{{video.created}}</td>
-            <td><a href="#" @click="getArtifact(video)">分析情報</a></td>
+            <td><a href="#" @click="getArtifact(video)" v-if="video.state == 'Processed'">分析情報</a></td>
           </tr>
         </tbody>
       </table>
@@ -56,10 +57,10 @@
         </div>
       </div>
 
-      <!-- ファイルアップロードのモーダル -->
+      <!-- ビデオアップロードのモーダル -->
       <Teleport to="body">
-        <Modal :show="showModal" @close="showModal = false">
-          <template #headerTitle>ファイルのアップロード</template>
+        <Modal :show="showUploadModal" @close="showUploadModal = false">
+          <template #headerTitle>ビデオのアップロード</template>
           <template #body>
             <div>
               <input type="file" @change="onUploadFileSelected" class="form-control" />
@@ -72,6 +73,21 @@
                 v-bind:style="{ width: uploadProgress + '%' }"
               ></div>
             </div>
+          </template>
+          <template #footer>
+            <button type="button" class="btn btn-secondary" @click="showUploadModal = false">閉じる</button>
+          </template>
+        </Modal>
+      </Teleport>
+      
+      <!-- ビデオ削除のモーダル -->
+      <Teleport to="body">
+        <Modal :show="showDeleteModal" @close="showDeleteModal = false">
+          <template #headerTitle>ビデオの削除</template>
+          <template #body>選択したビデオ "{{selectedVideo.name}}" を削除しますか？</template>
+          <template #footer>
+            <button type="button" class="btn btn-secondary me-2" @click="showDeleteModal = false">閉じる</button>
+            <button type="button" class="btn btn-danger" @click="deleteVideo(selectedVideo)">削除</button>
           </template>
         </Modal>
       </Teleport>
@@ -132,7 +148,8 @@ export default {
         Failed: "分析失敗",
         Quarantined: "検疫済み",
       },
-      showModal: false,
+      showUploadModal: false,
+      showDeleteModal: false,
       uploading: false,
       uploadProgress: 0,
       uploadErrorMessage: null,
@@ -142,9 +159,22 @@ export default {
       insightsWidgetsUrl: null
     };
   },
+  watch: {
+    selectedVideo: async function() {
+      if (!this.selectedVideo || this.selectedVideo.state != "Processed") return;
+      this.videoWidgetsUrl = null;
+      this.insightsWidgetsUrl = null;
+      this.videoLoading = true;
+      const url = `${this.webApiEndpoint}/api/videos/${this.selectedVideo.id}/widgets`;
+      const resp = await axios.get(url);
+
+      this.videoWidgetsUrl = resp.data.videoWidgetsUrl;
+      this.insightsWidgetsUrl = resp.data.insightsWidgetsUrl;
+      this.videoLoading = false;
+    },
+  },
   async mounted() {
     await this.listVideos();
-    await this.onVideoSelected(this.videos[0]);
   },
   methods: {
     // ビデオ一覧を取得する
@@ -159,7 +189,12 @@ export default {
       });
 
       // ビデオがアップロードされていない場合は、アップロード用のモーダルを表示する
-      if (this.videos.length == 0) this.showModal = true;
+      if (this.videos.length == 0) {
+        this.showUploadModal = true;
+      } else {
+        // ビデオがアップロードされている場合は、一番上のビデオを選択された状態にする
+        this.selectedVideo = this.videos[0];
+      }
     },
     // アップロードファイルが選択された時の処理
     onUploadFileSelected: async function (e) {
@@ -171,32 +206,16 @@ export default {
       this.uploadErrorMessage = null;
 
       // Azure Blob へのアップロード先URL(SAS付き)を取得する
-      let uploadUrl;
-      try {
-        const url = `${this.webApiEndpoint}/api/videos/uploadurl?name=${file.name}`;
-        const resp = await axios.get(url);
-        uploadUrl = resp.data;
-      } catch (error) {
-        const statusCode = error.response.status;
-        if (statusCode == 409) {
-          // 既に同じ名前のファイルが Blob に存在する場合はアップロードしないようにする
-          this.uploadErrorMessage =
-            "既に同じ名前のファイルがアップロードされています。";
-          return;
-        }
-        throw error;
-      }
+      const url = `${this.webApiEndpoint}/api/videos/uploadurl?name=${file.name}`;
+      const resp = await axios.get(url);
+      const uploadUrl = resp.data;
 
       const reader = new FileReader();
       const onUploadProgress = (e) => {
         this.uploadProgress = Math.round(e.progress * 100);
         if (this.uploadProgress == 100) {
-          setTimeout(() => {
-            this.showModal = false;
-          }, 250);
-          setTimeout(() => {
-            this.uploading = false;
-          }, 500);
+          setTimeout(() => { this.showUploadModal = false; }, 250); // モーダルを非表示にするのを多少遅らせる
+          setTimeout(() => { this.uploading = false; }, 500); // プログレスバーを非表示にするのを多少遅らせる
           this.videos.push({
             name: file.name,
             state: "Uploaded",
@@ -219,24 +238,19 @@ export default {
     },
     // ビデオ一覧で任意のビデオがクリックされた時の処理
     onVideoSelected: async function (video) {
-      if (!video || !video.id || video.state != "Processed") return;
-      this.videoWidgetsUrl = null;
-      this.insightsWidgetsUrl = null;
-      this.videoLoading = true;
-
       this.selectedVideo = video;
-      const url = `${this.webApiEndpoint}/api/videos/${video.id}/widgets`;
-      const resp = await axios.get(url);
-
-      this.videoWidgetsUrl = resp.data.videoWidgetsUrl;
-      this.insightsWidgetsUrl = resp.data.insightsWidgetsUrl;
-      this.videoLoading = false;
     },
     // ビデオ分析情報を取得して画面に表示する処理
     getArtifact: async function(video) {
       const url = `${this.webApiEndpoint}/api/videos/${video.id}/artifact`;
       const resp = await axios.get(url);
       window.open(resp.data.artifactUrl, '_blank');
+    },
+    // 指定したビデオを削除する処理
+    deleteVideo: async function(video) {
+      const url = `${this.webApiEndpoint}/api/videos/${video.id}`;
+      await axios.delete(url);
+      this.listVideos(); // ビデオ一覧を再取得する
     },
     // 秒数(int)からビデオの再生時間テキスト(string)へ変換する処理
     formatDurationSeconds: function (seconds) {
